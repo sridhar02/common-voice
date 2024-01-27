@@ -39,6 +39,12 @@ export type CommonVoiceConfig = {
     CLIENT_ID: string;
     CLIENT_SECRET: string;
   };
+  GITLAB: {
+    DOMAIN: string;
+    CLIENT_ID: string;
+    CLIENT_SECRET: string;
+    REDIRECT_URI: string;
+  };
   BASKET_API_KEY?: string;
   IMPORT_SENTENCES: boolean;
   REDIS_URL: string;
@@ -97,6 +103,12 @@ const BASE_CONFIG: CommonVoiceConfig = {
     DOMAIN: configEntry('CV_AUTH0_DOMAIN', ''),
     CLIENT_ID: configEntry('CV_AUTH0_CLIENT_ID', ''),
     CLIENT_SECRET: configEntry('CV_AUTH0_CLIENT_SECRET', ''),
+  },
+  GITLAB: {
+    DOMAIN: configEntry('CV_GITLAB_DOMAIN', ''),
+    CLIENT_ID: configEntry('CV_GITLAB_CLIENT_ID', ''),
+    CLIENT_SECRET: configEntry('CV_GITLAB_CLIENT_SECRET', ''),
+    REDIRECT_URI: configEntry('CV_GITLAB_REDIRECT_URI', ''),
   },
   IMPORT_SENTENCES: configEntry('CV_IMPORT_SENTENCES', true, castBoolean),
   REDIS_URL: configEntry('CV_REDIS_URL', null),

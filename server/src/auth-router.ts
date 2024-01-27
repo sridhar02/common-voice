@@ -1,7 +1,8 @@
 import { parse as parseURL } from 'url';
 import { AES, enc } from 'crypto-js';
 import * as passport from 'passport';
-const Auth0Strategy = require('passport-auth0');
+// const Auth0Strategy = require('passport-auth0')
+const GitLabStrategy = require('passport-gitlab2');
 import { NextFunction, Request, Response } from 'express';
 const PromiseRouter = require('express-promise-router');
 import * as session from 'express-session';
@@ -20,7 +21,8 @@ const {
   MYSQLPASS,
   PROD,
   SECRET,
-  AUTH0: { DOMAIN, CLIENT_ID, CLIENT_SECRET },
+  // AUTH0: { DOMAIN, CLIENT_ID, CLIENT_SECRET },
+  GITLAB: { DOMAIN, CLIENT_ID, CLIENT_SECRET, REDIRECT_URI },
 } = getConfig();
 const CALLBACK_URL = '/callback';
 
@@ -55,49 +57,61 @@ passport.deserializeUser((sessionUser: any, done: Function) =>
 );
 
 if (DOMAIN) {
-  Auth0Strategy.prototype.authorizationParams = function (options: any) {
-    var options = options || {};
+  // Auth0Strategy.prototype.authorizationParams = function (options: any) {
+  //   var options = options || {}
+  //
+  //   const params: any = {}
+  //   if (options.connection && typeof options.connection === 'string') {
+  //     params.connection = options.connection
+  //   }
+  //   if (options.audience && typeof options.audience === 'string') {
+  //     params.audience = options.audience
+  //   }
+  //   params.account_verification = true
+  //
+  //   return params
+  // }
 
-    const params: any = {};
-    if (options.connection && typeof options.connection === 'string') {
-      params.connection = options.connection;
-    }
-    if (options.audience && typeof options.audience === 'string') {
-      params.audience = options.audience;
-    }
-    params.account_verification = true;
+  // const strategy = new Auth0Strategy(
+  //   {
+  //     domain: DOMAIN,
+  //     clientID: CLIENT_ID,
+  //     clientSecret: CLIENT_SECRET,
+  //     callbackURL:
+  //       ((
+  //         {
+  //           stage: 'https://commonvoice.allizom.org',
+  //           prod: 'https://commonvoice.mozilla.org',
+  //           dev: 'https://dev.voice.mozit.cloud',
+  //           sandbox: 'https://sandbox.commonvoice.allizom.org',
+  //         } as any
+  //       )[ENVIRONMENT] || '') + CALLBACK_URL,
+  //     scope: 'openid email',
+  //   },
+  //   (
+  //     accessToken: any,
+  //     refreshToken: any,
+  //     extraParams: any,
+  //     profile: any,
+  //     done: any
+  //   ) => done(null, profile)
+  // )
 
-    return params;
-  };
-
-  const strategy = new Auth0Strategy(
-    {
-      domain: DOMAIN,
-      clientID: CLIENT_ID,
-      clientSecret: CLIENT_SECRET,
-      callbackURL:
-        ((
-          {
-            stage: 'https://commonvoice.allizom.org',
-            prod: 'https://commonvoice.mozilla.org',
-            dev: 'https://dev.voice.mozit.cloud',
-            sandbox: 'https://sandbox.commonvoice.allizom.org',
-          } as any
-        )[ENVIRONMENT] || '') + CALLBACK_URL,
-      scope: 'openid email',
-    },
-    (
-      accessToken: any,
-      refreshToken: any,
-      extraParams: any,
-      profile: any,
-      done: any
-    ) => done(null, profile)
+  passport.use(
+    new GitLabStrategy(
+      {
+        clientID: CLIENT_ID,
+        clientSecret: CLIENT_SECRET,
+        callbackURL: REDIRECT_URI,
+        baseURL: DOMAIN,
+      },
+      function (_accessToken: any, _refreshToken: any, profile: any, cb: any) {
+        return cb(null, profile);
+      }
+    )
   );
-
-  passport.use(strategy);
 } else {
-  console.log('No Auth0 configuration found');
+  console.log('No GitLab configuration found');
 }
 
 function parseState(request: Request) {
@@ -112,7 +126,7 @@ function parseState(request: Request) {
 
 router.get(
   CALLBACK_URL,
-  passport.authenticate('auth0', { failureRedirect: '/login' }),
+  passport.authenticate('gitlab', { failureRedirect: '/login' }),
   async (request: Request, response: Response) => {
     const {
       user,
@@ -194,7 +208,7 @@ router.get('/login', (request: Request, response: Response) => {
     const pathParts = parseURL(headers.referer).pathname?.split('/');
     locale = pathParts?.[1] || '';
   }
-  passport.authenticate('auth0', {
+  passport.authenticate('gitlab', {
     state: AES.encrypt(
       JSON.stringify({
         locale,
