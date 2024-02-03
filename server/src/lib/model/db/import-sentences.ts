@@ -5,6 +5,7 @@ import { PassThrough } from 'stream';
 import promisify from '../../../promisify';
 import { hashSentence } from '../../utility';
 import { redis, useRedis } from '../../redis';
+import { getMySQLInstance } from './mysql';
 
 const CWD = process.cwd();
 const SENTENCES_FOLDER = path.resolve(CWD, 'server/data/');
@@ -43,7 +44,7 @@ function streamSentences(localePath: string) {
             source,
           });
           sentences = [];
-        }
+        };
         await new Promise<void>(resolve => {
           const fileStream = fs
             .createReadStream(filePath)
@@ -153,7 +154,9 @@ export async function importSentences(pool: any) {
     (await new Promise(resolve =>
       fs.readdir(SENTENCES_FOLDER, (_, names) => resolve(names))
     )) as string[]
-  ).filter(name => name !== 'LICENSE');
+  )
+    .filter(name => name === 'te')
+    .filter(name => name !== 'LICENSE');
 
   print('locales', locales.join(','));
 
@@ -206,3 +209,9 @@ export async function importSentences(pool: any) {
     )
   );
 }
+
+getMySQLInstance()
+  .getPool()
+  .then(importSentences)
+  .then(() => getMySQLInstance().endConnection());
+
