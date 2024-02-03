@@ -1,0 +1,88 @@
+version: '3'
+
+services:
+  db:
+    image: mysql:5.7.41
+    networks:
+      - voice-web
+    container_name: db
+    restart: unless-stopped
+    environment:
+      - MYSQL_DATABASE=voiceweb
+      - MYSQL_USER=voicecommons
+      - MYSQL_PASSWORD=voicecommons
+      - MYSQL_ROOT_PASSWORD=voicewebroot
+    command: mysqld --sql_mode="STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION"
+    ports:
+      - 3306:3306
+    volumes:
+      - mysql-data:/var/lib/mysql
+  redis:
+    image: redis:alpine
+    container_name: redis
+    restart: unless-stopped
+    networks:
+      - voice-web
+    volumes:
+      - redis-data:/data
+  storage:
+    image: fsouza/fake-gcs-server
+    container_name: storage
+    ports:
+      - 8080:8080
+    networks:
+      - voice-web
+    command:
+      [
+        '-scheme',
+        'http',
+        '-port',
+        '8080',
+        '-external-url',
+        'http://storage:8080',
+        '-backend',
+        'filesystem'
+      ]
+  bundler:
+    build:
+      context: ./bundler
+      dockerfile: Dockerfile.prod
+    container_name: bundler
+    links:
+      - db
+      - redis
+      - storage
+    volumes:
+      - ./bundler:/code
+    networks:
+      - voice-web
+    ports:
+      - 9001:9001
+    command: bash -c "npm ci && npm run build && npm start"
+  web:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.prod
+    container_name: web
+    links:
+      - db
+      - redis
+      - storage
+    volumes:
+      - .:/code
+      - yarn-cache:/usr/local/share/.cache/yarn/v6
+    environment:
+      - DOTENV_CONFIG_PATH=/code/.env-local-docker
+    networks:
+      - voice-web
+    ports:
+      - 9000:9000
+    command: bash -c "/code/docker/wait-for-it.sh storage:8080 -- /code/docker/prepare_storage.sh && yarn && yarn start:prod"
+
+networks:
+  voice-web:
+
+volumes:
+  mysql-data:
+  redis-data:
+  yarn-cache:
