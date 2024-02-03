@@ -1,0 +1,29 @@
+FROM node:18-bookworm
+
+ARG COMMIT="local-build"
+ARG TAG=""
+
+LABEL commit=${COMMIT}
+LABEL tag=${TAG}
+
+# Allow exposing HTTP endpoint
+EXPOSE 9000
+
+# Install dependencies
+RUN apt-get update && \
+    apt-get install -y apt-transport-https build-essential cmake curl vim ffmpeg && \
+    curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - && \
+    echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list && \
+    apt-get update && \
+    apt-get install --no-install-recommends -y yarn
+
+# Setup work directory
+WORKDIR /code
+
+# Create directory for storing logs, ensure permissions are secure
+RUN mkdir logs && chmod 700 logs
+
+ENV GIT_COMMIT_SHA=${COMMIT}
+
+# Default command to start the server
+CMD yarn start 2>&1 | tee /code/logs/voice-server.log
