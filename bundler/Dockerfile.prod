@@ -1,0 +1,42 @@
+FROM node:18-bullseye
+
+# Update the package list and install Python3, pip, and Vim
+RUN apt-get update && \
+    apt-get install python3-pip vim -y && \
+    pip3 install --upgrade setuptools
+
+# Create and set permissions for the cache directory
+RUN mkdir /cache
+
+# Set up the environment for Rust and install the necessary repositories
+RUN curl https://sh.rustup.rs -sSf | sh -s -- -y && \
+    git clone --depth 1 -b release-v1.0.1 https://github.com/common-voice/CorporaCreator.git /CorporaCreator && \
+    git clone --depth 1 -b release-v1.0.0 https://github.com/common-voice/mp3-duration-reporter.git /mp3-duration-reporter && \
+    cd /CorporaCreator && \
+    python3 setup.py install && \
+    cd /mp3-duration-reporter && \
+    /root/.cargo/bin/cargo install --path .
+
+
+# Update the PATH environment variable
+ENV PATH "$PATH:/root/.local/bin:/root/.cargo/bin"
+ENV npm_config_cache "/cache"
+
+# Set the working directory
+WORKDIR /code
+
+# Copy package.json and package-lock.json
+COPY ./package.json ./
+COPY ./package-lock.json ./
+
+# Install Node.js dependencies
+RUN npm ci
+
+# Copy the rest of your application code
+COPY ./ ./
+
+# Build the application
+RUN npm run build
+
+# Set the command to run your application
+CMD ["npm", "run", "start"]
