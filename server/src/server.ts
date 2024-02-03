@@ -84,7 +84,7 @@ export default class Server {
         // security-centric headers
         response.removeHeader('x-powered-by');
         response.set('X-Production', PROD ? 'On' : 'Off');
-        response.set('Content-Security-Policy', CSP_HEADER_VALUE);
+        response.set('Content-Security-Policy-Report-Only', CSP_HEADER_VALUE);
         response.set('X-Content-Type-Options', 'nosniff');
         response.set('X-XSS-Protection', '1; mode=block');
         response.set('X-Frame-Options', 'DENY');
