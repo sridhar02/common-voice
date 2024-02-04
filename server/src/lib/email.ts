@@ -19,7 +19,7 @@ class Email {
   private async createTransporter() {
     const { PROD } = getConfig()
 
-    if (!PROD) {
+    if (PROD) {
       this.transporter = await this.createTestTransporter()
       return
     }
