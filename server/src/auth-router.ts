@@ -128,11 +128,18 @@ router.get(
   CALLBACK_URL,
   passport.authenticate('gitlab', { failureRedirect: '/login' }),
   async (request: Request, response: Response) => {
+    console.log(request.headers);
+    console.log(response.get('Set-Cookie'));
+
     const {
       user,
       query: { state },
       session,
     } = request;
+
+    console.log('user', user);
+    console.log('state', state);
+    console.log('session', session);
 
     let currentState = {
       locale: '',
@@ -149,11 +156,13 @@ router.get(
     }
 
     const { locale, old_user, old_email, redirect, enrollment } = currentState;
+    console.log('currentState', currentState);
 
     const basePath = locale ? `/${locale}/` : '/';
     if (!user) {
       response.redirect(basePath + 'login-failure');
     } else if (old_user) {
+      console.log('old user path');
       const success = await UserClient.updateSSO(
         old_email,
         user.emails[0].value
@@ -163,6 +172,7 @@ router.get(
       }
       response.redirect('/profile/settings?success=' + success.toString());
     } else if (enrollment?.challenge && enrollment?.team) {
+      console.log('enrollment path');
       if (
         !(await UserClient.enrollRegisteredUser(
           user.emails[0].value,
@@ -196,6 +206,10 @@ router.get(
           `${basePath}login-success?challenge=${enrollment.challenge}&achievement=1`
       );
     } else {
+      console.log('normal path');
+
+      console.log(response.get('Set-Cookie'));
+
       response.redirect(redirect || basePath + 'login-success');
     }
   }
