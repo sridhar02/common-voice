@@ -14,7 +14,7 @@ import validate from './validation';
 import { clipsSchema } from './validation/clips';
 import { streamUploadToBucket } from '../infrastructure/storage/storage';
 import { pipe } from 'fp-ts/lib/function';
-import {taskEither as TE, task as T, identity as Id} from 'fp-ts';
+import { taskEither as TE, task as T, identity as Id } from 'fp-ts';
 
 const { promisify } = require('util');
 const Transcoder = require('stream-transcoder');
@@ -22,6 +22,7 @@ const { Converter } = require('ffmpeg-stream');
 const { Readable, PassThrough } = require('stream');
 const mp3Duration = require('mp3-duration');
 const calcMp3Duration = promisify(mp3Duration);
+const debug = require('debug')('app:clip');
 
 enum ERRORS {
   MISSING_PARAM = 'MISSING_PARAM',
@@ -179,6 +180,7 @@ export default class Clip {
    * to be easily parsed from other errors
    */
   saveClip = async (request: Request, response: Response) => {
+    debug('saveClip request started', request.headers);
     const { client_id, headers } = request;
     const sentenceId = headers.sentence_id as string;
     const source = headers.source || 'unidentified';
@@ -197,6 +199,8 @@ export default class Clip {
       return;
     }
 
+    debug('saveClip client_id and sentence_id', client_id, sentenceId);
+
     const sentence = await this.model.db.findSentence(sentenceId);
     if (!sentence) {
       this.clipSaveError(
@@ -210,11 +214,15 @@ export default class Clip {
       return;
     }
 
+    debug('saveClip sentence found', sentence);
+
     // Where is our audio clip going to be located?
     const folder = client_id + '/';
     const filePrefix = sentenceId;
     const clipFileName = folder + filePrefix + '.mp3';
     const metadata = `${clipFileName} (${size} bytes, ${format}) from ${source}`;
+
+    debug('saveClip metadata', metadata);
 
     if (await this.model.db.clipExists(client_id, sentenceId)) {
       this.clipSaveError(
@@ -242,12 +250,13 @@ export default class Clip {
         audioInput = converter.createBufferedInputStream();
         audioStream.pipe(audioInput);
       }
-      
+
       const pass = new PassThrough();
 
-      let chunks: any = []; 
+      let chunks: any = [];
 
       pass.on('error', (error: string) => {
+        debug('saveClip error', error);
         this.clipSaveError(
           headers,
           response,
@@ -257,11 +266,13 @@ export default class Clip {
           'clip'
         );
         return;
-      })
+      });
       pass.on('data', function (chunk: any) {
         chunks.push(chunk);
       });
       pass.on('finish', async () => {
+        debug('saveClip pass finished', metadata);
+
         const buffer = Buffer.concat(chunks);
         const durationInSec = await calcMp3Duration(buffer);
 
@@ -280,6 +291,8 @@ export default class Clip {
         await checkGoalsAfterContribution(client_id, {
           id: sentence.locale_id,
         });
+
+        debug('saveClip awards and goals checked', metadata);
 
         Basket.sync(client_id).catch(e => console.error(e));
 
@@ -303,13 +316,12 @@ export default class Clip {
                 client_id,
                 challenge,
               ]),
-              challengeEnded: await this.model.db.hasChallengeEnded(
-                challenge
-              ),
+              challengeEnded: await this.model.db.hasChallengeEnded(challenge),
             }
           : { filePrefix };
-          response.json(ret);
-        })
+        response.json(ret);
+        debug('saveClip response sent', metadata);
+      });
 
       const audioOutput = new Transcoder(audioInput)
         .audioCodec('mp3')
@@ -325,7 +337,7 @@ export default class Clip {
         Id.ap(clipFileName),
         Id.ap(audioOutput),
         TE.getOrElse((err: Error) => T.of(console.log(err)))
-      )()
+      )();
     }
   };
 
