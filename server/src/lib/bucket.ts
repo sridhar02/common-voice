@@ -36,13 +36,18 @@ export default class Bucket {
    * Fetch a public url for the resource.
    */
   public async getPublicUrl(key: string, bucketType?: string): Promise<string> {
-    const { DATASET_BUCKET_NAME, CLIP_BUCKET_NAME, ENVIRONMENT } = getConfig()
+    const {
+      DATASET_BUCKET_NAME,
+      CLIP_BUCKET_NAME,
+      ENVIRONMENT,
+      STORAGE_EXTERNAL_URL,
+    } = getConfig()
 
     const bucket =
       bucketType === 'dataset' ? DATASET_BUCKET_NAME : CLIP_BUCKET_NAME
 
     if (ENVIRONMENT === 'local') {
-      return `http://localhost:8080/storage/v1/b/${bucket}/o/${key}?alt=media`
+      return `${STORAGE_EXTERNAL_URL}/storage/v1/b/${bucket}/o/${key}?alt=media`
     }
 
     const url = await pipe(
@@ -168,7 +173,7 @@ export default class Bucket {
     const bucket = getConfig().CLIP_BUCKET_NAME
     const passThrough = new PassThrough()
     const archive = archiver('zip', { zlib: { level: 6 } })
-    
+
     archive.pipe(passThrough)
 
     for (const path of paths) {
