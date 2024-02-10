@@ -1,6 +1,6 @@
-const PROFILE = '/profile';
-const DASHBOARD = '/dashboard';
-const DEMO = '/demo';
+const PROFILE = '/profile'
+const DASHBOARD = '/dashboard'
+const DEMO = '/demo'
 
 export default Object.freeze({
   ROOT: '',
@@ -53,10 +53,9 @@ export default Object.freeze({
   TARGET_SEGMENT_INFO_ES:
     'https://discourse.mozilla.org/t/ayuda-a-crear-el-primer-objetivo-segmentado-de-common-voice/60472/',
 
-  HTTP_ROOT: 'https://gonthuka3.swecha.org',
+  HTTP_ROOT: 'https://voice.swecha.org',
   STAGING_ROOT: 'https://commonvoice.allizom.org',
   GITHUB_ROOT: 'https://github.com/mozilla/common-voice',
   MOZILLA_BLOG_ROOT: 'http://foundation.mozilla.org/blog',
   S3_CDN: 'https://cdn.commonvoice.mozilla.org',
-});
-
+})
