@@ -1,30 +1,30 @@
-import * as React from 'react';
-import { useEffect, useState } from 'react';
-import { LocalizationProvider } from '@fluent/react';
-import { useHistory, Switch, Route, Redirect } from 'react-router';
-import { useDispatch } from 'react-redux';
-import * as Sentry from '@sentry/react';
+import * as React from 'react'
+import { useEffect, useState } from 'react'
+import { LocalizationProvider } from '@fluent/react'
+import { useHistory, Switch, Route, Redirect } from 'react-router'
+import { useDispatch } from 'react-redux'
+import * as Sentry from '@sentry/react'
 
-import URLS from '../urls';
+import URLS from '../urls'
 import {
   createLocalization,
   DEFAULT_LOCALE,
   negotiateLocales,
-} from '../services/localization';
-import { useTypedSelector } from '../stores/tree';
-import { replacePathLocale } from '../utility';
-import { useAPI } from '../hooks/store-hooks';
-import { Spinner } from './ui/ui';
-import { Locale } from '../stores/locale';
-import * as Languages from '../stores/languages';
-import { useLocale } from './locale-helpers';
+} from '../services/localization'
+import { useTypedSelector } from '../stores/tree'
+import { replacePathLocale } from '../utility'
+import { useAPI } from '../hooks/store-hooks'
+import { Spinner } from './ui/ui'
+import { Locale } from '../stores/locale'
+import * as Languages from '../stores/languages'
+import { useLocale } from './locale-helpers'
 
-const SentryRoute = Sentry.withSentryRouting(Route);
+const SentryRoute = Sentry.withSentryRouting(Route)
 
 interface LanguageRoutesProps {
-  userLocales: string[];
-  setUserLocales: (newUserLocales: string[]) => void;
-  children: React.ReactNode;
+  userLocales: string[]
+  setUserLocales: (newUserLocales: string[]) => void
+  children: React.ReactNode
 }
 
 const LanguageRoutes = ({
@@ -32,10 +32,10 @@ const LanguageRoutes = ({
   setUserLocales,
   children,
 }: LanguageRoutesProps) => {
-  const languages = useTypedSelector(({ languages }) => languages);
+  const languages = useTypedSelector(({ languages }) => languages)
 
-  const [primaryUserLocale] = userLocales;
-  const [, toLocaleRoute] = useLocale();
+  const [primaryUserLocale] = userLocales
+  const [, toLocaleRoute] = useLocale()
 
   return (
     <Switch>
@@ -106,85 +106,91 @@ const LanguageRoutes = ({
         }}
       />
     </Switch>
-  );
-};
+  )
+}
 
 interface LanguagesProviderProps {
-  children: React.ReactNode;
+  children: React.ReactNode
 }
 
 const LanguagesProvider = ({ children }: LanguagesProviderProps) => {
-  const api = useAPI();
-  const history = useHistory();
-  const languages = useTypedSelector(({ languages }) => languages);
-  const flags = useTypedSelector(({ flags }) => flags);
-  const dispatch = useDispatch();
+  const api = useAPI()
+  const history = useHistory()
+  const languages = useTypedSelector(({ languages }) => languages)
+  const flags = useTypedSelector(({ flags }) => flags)
+  const dispatch = useDispatch()
 
-  const [userLocales, setUserLocales] = useState([]);
-  const [localization, setLocalization] = useState(null);
+  const [userLocales, setUserLocales] = useState<string[]>([])
+  const [localization, setLocalization] = useState(null)
 
   const loadLanguages = () => {
-    dispatch(Languages.actions.loadLocalesData());
-  };
+    dispatch(Languages.actions.loadLocalesData())
+  }
 
   const setLocale = (newLocale: string) => {
-    dispatch(Locale.actions.set(newLocale));
-  };
+    dispatch(Locale.actions.set(newLocale))
+  }
 
   async function updateLocalization() {
-    const localizationUserLocales = [...userLocales];
+    const localizationUserLocales = [...userLocales]
 
-    const pathname = history.location.pathname;
+    const pathname = history.location.pathname
 
     if (!languages.translatedLocales.includes(userLocales[0])) {
-      localizationUserLocales[0] = DEFAULT_LOCALE;
-      setUserLocales(localizationUserLocales);
+      localizationUserLocales[0] = DEFAULT_LOCALE
+      setUserLocales(localizationUserLocales)
 
-      setLocale(DEFAULT_LOCALE);
-      history.replace(replacePathLocale(pathname, DEFAULT_LOCALE));
+      setLocale(DEFAULT_LOCALE)
+      history.replace(replacePathLocale(pathname, DEFAULT_LOCALE))
     } else {
-      setLocale(localizationUserLocales[0]);
+      setLocale(localizationUserLocales[0])
     }
 
-    const { documentElement } = document;
-    documentElement.setAttribute('lang', localizationUserLocales[0]);
+    const { documentElement } = document
+    documentElement.setAttribute('lang', localizationUserLocales[0])
     documentElement.setAttribute(
       'dir',
       languages.rtlLocales.includes(localizationUserLocales[0]) ? 'rtl' : 'ltr'
-    );
+    )
 
     const newLocalization = await createLocalization(
       api,
       localizationUserLocales,
       flags.messageOverwrites,
       languages.translatedLocales
-    );
+    )
 
-    setLocalization(newLocalization);
+    setLocalization(newLocalization)
   }
 
   useEffect(() => {
-    loadLanguages();
-  }, []);
+    loadLanguages()
+  }, [])
 
   useEffect(() => {
     if (userLocales.length === 0 && !languages?.isLoading) {
-      const newUserLocales = negotiateLocales(
+      let newUserLocales = negotiateLocales(
         navigator.languages,
         languages.translatedLocales
-      );
-      setUserLocales(newUserLocales);
+      ) as string[]
+
+      newUserLocales = newUserLocales.filter(
+        locale => locale !== DEFAULT_LOCALE
+      )
+      newUserLocales.unshift(DEFAULT_LOCALE)
+
+      setUserLocales(newUserLocales)
     }
-  }, [userLocales, languages]);
+  }, [userLocales, languages])
 
   useEffect(() => {
     if (userLocales.length > 0) {
-      updateLocalization();
+      updateLocalization()
     }
-  }, [userLocales]);
+  }, [userLocales])
 
   if (languages?.isLoading || !localization) {
-    return <Spinner />;
+    return <Spinner />
   }
 
   return (
@@ -193,7 +199,7 @@ const LanguagesProvider = ({ children }: LanguagesProviderProps) => {
         {children}
       </LanguageRoutes>
     </LocalizationProvider>
-  );
-};
+  )
+}
 
-export default LanguagesProvider;
+export default LanguagesProvider
